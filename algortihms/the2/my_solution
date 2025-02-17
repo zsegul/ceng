@@ -1,0 +1,100 @@
+#include "the2.h"
+
+// DO NOT CHANGE ABOVE THIS LINE!
+// you may implement helper functions below
+
+void counting_sort(std::string* arr, int size, int position, bool ascending, int group_size, long &iterations) {
+    int bucket_count = 1; 
+    for (int g = 1; g <= group_size; g++) {
+         bucket_count += pow(27, g);
+    }
+
+    int* C = new int[bucket_count](); 
+    std::string* output = new std::string[size]; 
+
+    for (int i = 0; i < size; i++) {
+        int index = 0;
+        int power = 1;
+
+        for (int j = 0; j < group_size; j++) {
+            int char_pos = position - j;
+            int char_val = (char_pos >= 0 && char_pos < arr[i].length()) ? (arr[i][char_pos] - 'A' + 1) : 0;
+
+            
+            index += char_val * power;
+            power *= 27; 
+        }
+        C[index]++;
+        iterations++;
+    }
+
+    for (int i = 1; i < bucket_count; ++i) {
+        C[i] += C[i - 1];
+        iterations++;
+    }
+
+    for (int i = size - 1; i >= 0; --i) {
+        int index = 0;
+        int power = 1;  
+
+        for (int j = 0; j < group_size; j++) {
+            int char_pos = position - j;
+            int char_val = 0; // Default to 0 for missing characters
+
+            // Check if the position is valid for the current string
+            if (char_pos >= 0 && char_pos < arr[i].length()) {
+                char_val = arr[i][char_pos] - 'A' + 1; // Map 'A' to 1, ..., 'Z' to 26
+            }
+            index += char_val * power;
+            power *= 27;  
+        }
+        output[C[index] - 1] = arr[i];
+        C[index]--;
+        iterations++;
+    }
+
+    for (int i = 0; i < size; ++i) {
+        arr[i] = output[i];
+        iterations++;
+    }
+
+    delete[] C;
+    delete[] output;
+}
+
+
+void reverse(std::string* arr, int size) {
+    for (int i = 0; i < size / 2; i++) {
+        std::string temp = arr[i];
+        arr[i] = arr[size - 1 - i];
+        arr[size - 1 - i] = temp;
+    }
+}
+
+
+long multi_digit_string_radix_sort(std::string *arr,
+                                   const int size,
+                                   const bool ascending,
+                                   const int group_size){
+    // your code here
+    
+    long iterations = 0;
+    int max_length = 0;
+
+    for (int i = 0; i < size; i++) {
+        if (arr[i].length() > max_length) {
+            max_length = arr[i].length();
+        }
+    }
+
+    for (int position = max_length - 1; position >= 0; position--) {
+        counting_sort(arr, size, position, ascending, group_size, iterations);
+    }
+
+    if (!ascending) {
+        reverse(arr, size);
+    }
+
+
+    return iterations;
+}
