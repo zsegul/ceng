@@ -1,0 +1,79 @@
+#include "the6.h"
+
+// do not add extra libraries here
+
+
+/*
+input graph W:
+w_ij = 
+    { 0 if i = j ,
+    { the weight of directed edge (i, j) if i /= j and (i, j) ∈ E ,
+    { ∞ if i /= j and (i, j) /∈ E .
+
+FLOYD-WARSHALL(W)
+1 n ← rows[W]
+2 D^(0) ← W
+3 for k ← 1 to n
+4 do for i ← 1 to n
+5 do for j ← 1 to n
+6 do d^(k)_ij ← min (d^(k−1)_ij, d^(k−1)_ik + d^(k−1)_kj )
+7 return D(n) 
+*/
+
+
+std::vector< std::vector<float> > get_friendship_scores(const std::vector< std::vector< std::pair<int, int> > >& network){
+    int n = network.size();
+    const int INF = INT_MAX;
+
+    std::vector< std::vector<float> > D(n, std::vector<float>(n,INF));
+
+    for(int i= 0; i<n; i++){
+        for(const auto& edge: network[i]){
+            int n_2 = edge.first;
+            int weight = edge.second;
+            D[i][n_2] = weight;
+        }
+    }
+    
+    for (int i = 0; i<n; i++){
+        for(int j = 0; j<n; j++){
+            if(D[j][i] == INF) continue;
+            for(int k=0; k<n; k++){
+                if(D[i][k] < INF) {
+                    D[j][k] = std::min(D[j][k], D[j][i]+ D[i][k]);
+                }
+            }
+        }
+    }
+    
+    const float INFF = (float) INF;
+    
+    std::vector<float> SP1(n, INFF);
+    std::vector<std::vector<float>> FS(n, std::vector<float>(n, -1.0f));
+    
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i != j) {
+                SP1[i] = std::min(SP1[i], D[i][j]);
+            }
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        for (int k = 0; k < n; k++) {
+            float SP2_ik = D[i][k];
+            float SP2_ki = D[k][i];
+
+            if (SP2_ik == INFF && SP2_ki == INFF) {
+                FS[i][k] = -1.0f;
+            } else if (SP2_ik == INFF || SP2_ki == INFF) {
+                FS[i][k] = 0.0f;
+            } else {
+                FS[i][k] = (SP1[i] / SP2_ik) * (SP1[k] / SP2_ki);
+            }
+        }
+    }
+
+    
+    return FS;
+}
