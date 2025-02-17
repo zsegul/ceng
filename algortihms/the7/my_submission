@@ -1,0 +1,150 @@
+#include "the7.h"
+
+bool cyclic_check(int node, const std::vector<std::vector<std::pair<int, int>>>& graph, 
+                     std::vector<int>& state) {
+    state[node] = 1; //node that is being currently visited
+    for (const auto& neighbor : graph[node]) {
+        int next_node = neighbor.first;
+        if (state[next_node] == 1) { 
+            return true; //current node is visited again, cycle alert
+        }
+        if (state[next_node] == 0 && cyclic_check(next_node, graph, state)) {
+            // Continue DFS if unvisited and detect cycle
+            return true;
+        }
+    }
+    state[node] = 2; // Mark as "Visited"
+    return false;
+}
+
+bool is_dag(const std::vector<std::vector<std::pair<int, int>>>& graph) {
+    int n = graph.size();
+    std::vector<int> state(n, 0); // 0: Unvisited, 1: Visiting, 2: Visited
+
+    for (int i = 0; i < n; ++i) {
+        if (state[i] == 0) { 
+            // Start DFS for unvisited nodes
+            if (cyclic_check(i, graph, state)) {
+                return false; // Cycle detected, not a DAG
+            }
+        }
+    }
+    return true; // No cycle detected, it's a DAG
+}
+
+void topological_sort(int node, const std::vector<std::vector<std::pair<int, int>>>& graph, 
+                      std::vector<bool>& visited, std::stack<int>& order) {
+    visited[node] = true;
+    for (const auto& neighbor : graph[node]) {
+        if (!visited[neighbor.first]) {
+            topological_sort(neighbor.first, graph, visited, order);
+        }
+    }
+    order.push(node);
+}
+
+long dag_longest_path(const std::vector<std::vector<std::pair<int, int>>>& graph, 
+                      int starting_node, int destination_node, std::vector<int>& path) {
+    int n = graph.size();
+    std::vector<bool> visited(n, false);
+    std::stack<int> order;
+
+    // Topological Sort
+    for (int i = 0; i < n; ++i) {
+        if (!visited[i]) {
+            topological_sort(i, graph, visited, order);
+        }
+    }
+
+    // Initialize distances to all nodes as negative infinity
+    std::vector<long> dist(n, LONG_MIN);
+    std::vector<int> predecessor(n, -1);
+    dist[starting_node] = 0;
+
+    // Relax edges in topological order
+    while (!order.empty()) {
+        int node = order.top();
+        order.pop();
+
+        if (dist[node] != LONG_MIN) { // If node is reachable
+            for (const auto& neighbor : graph[node]) {
+                int next_node = neighbor.first;
+                int weight = neighbor.second;
+                if (dist[node] + weight > dist[next_node]) {
+                    dist[next_node] = dist[node] + weight;
+                    predecessor[next_node] = node;
+                }
+            }
+        }
+    }
+
+    // Reconstruct the path from predecessors
+    path.clear();
+    if (dist[destination_node] == LONG_MIN) return LONG_MIN; // No path
+
+    for (int node = destination_node; node != -1; node = predecessor[node]) {
+        path.push_back(node);
+    }
+    std::reverse(path.begin(), path.end());
+    return dist[destination_node];
+}
+
+
+void dfs_find_longest(int current, int destination, 
+                      const std::vector<std::vector<std::pair<int, int>>>& graph, 
+                      std::vector<bool>& visited, long current_length, 
+                      long& max_length, std::vector<int>& current_path, 
+                      std::vector<int>& best_path) {
+    visited[current] = true;
+    current_path.push_back(current);
+
+    if (current == destination) {
+        if (current_length > max_length) {
+            max_length = current_length;
+            best_path = current_path;
+        }
+    } else {
+        for (const auto& neighbor : graph[current]) {
+            if (!visited[neighbor.first]) {
+                dfs_find_longest(neighbor.first, destination, graph, visited, 
+                                 current_length + neighbor.second, max_length, 
+                                 current_path, best_path);
+            }
+        }
+    }
+
+    visited[current] = false;
+    current_path.pop_back();
+}
+
+long exhaustive_longest_path(const std::vector<std::vector<std::pair<int, int>>>& graph, 
+                             int starting_node, int destination_node, 
+                             std::vector<int>& path) {
+    int n = graph.size();
+    std::vector<bool> visited(n, false);
+    std::vector<int> current_path, best_path;
+    long max_length = LONG_MIN;
+
+    dfs_find_longest(starting_node, destination_node, graph, visited, 0, 
+                     max_length, current_path, best_path);
+
+    path = best_path;
+    return max_length;
+}
+
+
+std::vector<int> find_longest_path(const std::vector<std::vector<std::pair<int, int> > >& graph,
+                                                   int starting_node,
+                                                   int destination_node,
+                                                   long& length_of_longest_path){
+    std::vector<int> path;
+
+    if (is_dag(graph)) {
+        length_of_longest_path = dag_longest_path(graph, starting_node, destination_node, path);
+    } else {
+        length_of_longest_path = exhaustive_longest_path(graph, starting_node, destination_node, path);
+    }
+
+    return path;
+    //return std::vector<int>(0);
+}
