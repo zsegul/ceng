@@ -1,0 +1,99 @@
+#include "the1.h"
+
+// DO NOT CHANGE ABOVE THIS LINE!
+// you may implement helper functions below
+
+
+
+std::pair<int, int> partition(unsigned short *tiles, const int size, long &swap){
+    int i = 1;
+    int j = 1;
+    int k = size-1;
+    unsigned short pivot = tiles[0]; 
+    while(j<=k){
+        if (tiles[j] == pivot){
+            j = j+1;
+        }
+        else if(tiles[j] < pivot){
+            std::swap(tiles[i], tiles[j]);
+            i = i+1;
+            j = j+1;
+            swap = swap+1;
+        }
+        else if(tiles[j]>pivot){
+            std::swap(tiles[j], tiles[k]);
+            k = k-1;
+            swap = swap+1;
+        }
+        else break;   
+    }
+    std::swap(tiles[i-1], tiles[0]);
+    swap = swap+1;
+    return {i-1,j};
+}
+
+
+std::pair<unsigned short, unsigned int> select_k_with_quick_sort3(unsigned short *arr,
+                                                                  const unsigned int size,
+                                                                  const unsigned int index,
+                                                                  long &swap){
+    // your code here
+    
+    static unsigned int rec_call = 0;
+    
+    rec_call = rec_call + 1;
+    
+    if(size<=1){
+        return {arr[0], rec_call};
+    }
+    
+    std::pair<unsigned int, unsigned int> result = partition(arr, size, swap);
+    unsigned int left = result.first;   
+    unsigned int right = result.second;
+    
+    if(left>0){
+        select_k_with_quick_sort3(arr, left, index, swap);
+    }
+    
+    if (right < size - 1){
+        select_k_with_quick_sort3(arr + right, size - right, index, swap);
+    }
+    
+    
+    // do not forget to update the return value!
+    return {arr[index], rec_call};
+}
+
+
+
+std::pair<unsigned short, unsigned int> quick_select3(unsigned short *arr,
+                                                      const unsigned int size,
+                                                      const unsigned int index,
+                                                      long &swap){
+    // your code here
+    
+    static unsigned int rec_call = 0;
+    
+    rec_call = rec_call +1;
+     
+    if (size <= 1){
+        return {arr[0], rec_call};
+    } 
+    
+    std::pair<unsigned int, unsigned int> result = partition(arr, size, swap);
+    unsigned int left = result.first;   
+    unsigned int right = result.second;
+    
+    if(index < left){
+        return quick_select3(arr, left, index, swap);
+    }
+    
+    else if (index >= right){
+        return quick_select3(arr + right, size - right, index - right, swap);
+    } 
+    else{
+        return {arr[index], rec_call};
+    }
+    
+}
+
