@@ -1,0 +1,165 @@
+#include "the5.h"
+#include <iostream>
+#include <algorithm>
+
+/*
+algorithms from book
+
+DFS(G)
+1 for each vertex u ∈ V[G]
+2 do color[u] ← WHITE
+3 π[u] ← NIL
+4 time ← 0
+5 for each vertex u ∈ V[G]
+6 do if color[u] = WHITE
+7 then DFS-VISIT(u)
+
+DFS-VISIT(u)
+1 color[u] ← GRAY ✄ White vertex u has just been discovered.
+2 time ← time +1
+3 d[u] ← time
+4 for each v ∈ Adj[u] ✄ Explore edge (u, v).
+5 do if color[v] = WHITE
+6 then π[v] ← u
+7 DFS-VISIT(v)
+8 color[u] ← BLACK ✄ Blacken u; it is finished.
+9 f [u] ← time ← time +1
+
+TOPOLOGICAL-SORT(G)
+1 call DFS(G) to compute finishing times f [v] for each vertex v
+2 as each vertex is finished, insert it onto the front of a linked list
+3 return the linked list of vertices
+
+STRONGLY-CONNECTED-COMPONENTS(G) 
+1 call DFS(G) to compute finishing times f[u] for each vertex u
+2 compute GT
+3 call DFS(GT), but in the main loop of DFS, consider the vertices
+in order of decreasing f [u] (as computed in line 1)
+4 output the vertices of each tree in the depth-first forest formed in line 3 as a
+separate strongly connected component
+*/
+
+void dfs_visit(int u, const std::vector<std::vector<int>>& adj, std::vector<bool>& visited, std::vector<int>& finishTimes, std::vector<int>& order, int& time) {
+    visited[u] = true;
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            dfs_visit(v, adj, visited, finishTimes, order, time);
+        }
+    }
+    finishTimes[u] = time++;
+    order.push_back(u);
+}
+
+void dfs_transpose_visit(int u, const std::vector<std::vector<int>>& adjTranspose, std::vector<bool>& visited, std::vector<int>& component) {
+    visited[u] = true;
+    component.push_back(u);
+    for (int v : adjTranspose[u]) {
+        if (!visited[v]) {
+            dfs_transpose_visit(v, adjTranspose, visited, component);
+        }
+    }
+}
+
+std::vector<std::vector<int>> find_sccs(const std::vector<std::vector<int>>& adj, int n) {
+    std::vector<bool> visited(n, false);
+    std::vector<int> finishTimes(n, 0);
+    std::vector<int> order;
+    int time = 0;
+
+    for (int u = 0; u < n; ++u) {
+        if (!visited[u]) {
+            dfs_visit(u, adj, visited, finishTimes, order, time);
+        }
+    }
+
+    std::vector<std::vector<int>> adjTranspose(n);
+    for (int u = 0; u < n; ++u) {
+        for (int v : adj[u]) {
+            adjTranspose[v].push_back(u);
+        }
+    }
+
+    std::fill(visited.begin(), visited.end(), false);
+    std::vector<std::vector<int>> sccs;
+
+    for (int i = order.size() - 1; i >= 0; --i) {
+        int u = order[i];
+        if (!visited[u]) {
+            std::vector<int> component;
+            dfs_transpose_visit(u, adjTranspose, visited, component);
+            sccs.push_back(component);
+        }
+    }
+
+    return sccs;
+}
+
+std::vector<int> topological_sort(const std::vector<std::vector<int>>& adj, int n) {
+    std::vector<bool> visited(n, false);
+    std::vector<int> finishTimes(n, 0);
+    std::vector<int> order;
+    int time = 0;
+
+    for (int u = 0; u < n; ++u) {
+        if (!visited[u]) {
+            dfs_visit(u, adj, visited, finishTimes, order, time);
+        }
+    }
+
+    return order;
+}
+
+std::vector<std::vector<int>> find_work_order(const std::vector<std::vector<bool>>& dependencies) {
+    int n = dependencies.size();
+
+    std::vector<std::vector<int>> adj(n);
+    for (int u = 0; u < n; ++u) {
+        for (int v = 0; v < n; ++v) {
+            if (dependencies[u][v]) {
+                adj[u].push_back(v);
+            }
+        }
+    }
+
+    std::vector<std::vector<int>> sccs = find_sccs(adj, n);
+
+    for (auto& scc : sccs) {
+        std::sort(scc.begin(), scc.end()); 
+    }
+
+    std::vector<std::vector<int>> sccAdj(sccs.size());
+    std::vector<int> sccIndex(n, -1);
+
+    for (int i = 0; i < int(sccs.size()); ++i) {
+        for (int workItem : sccs[i]) {
+            sccIndex[workItem] = i;
+        }
+    }
+
+    for (int u = 0; u < n; ++u) {
+        for (int v : adj[u]) {
+            if (sccIndex[u] != sccIndex[v]) {
+                if (std::find(sccAdj[sccIndex[u]].begin(), sccAdj[sccIndex[u]].end(), sccIndex[v]) == sccAdj[sccIndex[u]].end()) {
+                    sccAdj[sccIndex[u]].push_back(sccIndex[v]);
+                }
+            }
+        }
+    } 
+
+    std::vector<int> reverseOrder = topological_sort(sccAdj, sccs.size());
+
+    std::vector<int> sccOrder;
+    for(auto it = reverseOrder.rbegin(); it != reverseOrder.rend(); it++){
+        sccOrder.push_back(*it);
+    }
+    /*
+    for(int i=0; i<sccOrder.size();i++){
+        std::cout<<sccOrder[i]<<" ";
+    }
+    */
+    std::vector<std::vector<int>> result;
+    for (int sccIndex : sccOrder) {
+        result.push_back(sccs[sccIndex]);
+    }
+    return result;
+}
